@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Local Business Search</title>
+    <!-- Tailwind CSS -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
+    <!-- Flowbite CSS -->
+    <link href="https://unpkg.com/flowbite@1.5.4/dist/flowbite.min.css" rel="stylesheet" />
+    <!-- AOS CSS -->
+    <link href="https://unpkg.com/aos@2.3.4/dist/aos.css" rel="stylesheet">
+    <!-- Toastr CSS -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css" rel="stylesheet">
+    <!-- Custom Styles -->
+    <style>
+        /* Autocomplete suggestions */
+        .autocomplete-suggestions {
+            position: absolute;
+            background-color: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 0.375rem;
+            max-height: 200px;
+            overflow-y: auto;
+            width: 100%;
+            z-index: 1000;
+        }
+
+        .autocomplete-suggestion {
+            padding: 0.5rem;
+            cursor: pointer;
+        }
+
+        .autocomplete-suggestion:hover {
+            background-color: #f3f4f6;
+        }
+
+        /* Loader Styles */
+        .loader {
+            border-top-color: #3498db;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* Sidebar Styles */
+        #sidebar {
+            transition: transform 0.3s ease-in-out;
+        }
+
+        #sidebar.mobile-hidden {
+            transform: translateX(-100%);
+        }
+
+        /* View Toggle Button Styles */
+        #view-toggle {
+            margin-top: 1rem;
+            display: flex;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        /* Responsive adjustments */
+        @media (min-width: 768px) {
+            #sidebar {
+                transform: translateX(0);
+            }
+
+            #sidebar-toggle-btn {
+                display: none;
+            }
+        }
+    </style>
+</head>
+
+<body class="bg-gray-100">
+    <!-- Sidebar -->
+    <div class="fixed inset-y-0 left-0 w-72 bg-white border border-gray-200 z-50 transform md:translate-x-0 transition-transform duration-300 rounded-xl m-5"
+        id="sidebar">
+        <div class="p-6">
+            <h2 class="text-2xl font-semibold mb-4">Filters</h2>
+            <form id="filter-form" class="space-y-4">
+                <!-- Filter by Website -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Website Availability</label>
+                    <div class="mt-1 flex items-center space-x-4">
+                        <label class="inline-flex items-center">
+                            <input type="radio" name="filter-website" value="all" class="form-radio text-blue-600"
+                                checked>
+                            <span class="ml-2">All</span>
+                        </label>
+                        <label class="inline-flex items-center">
+                            <input type="radio" name="filter-website" value="with" class="form-radio text-blue-600">
+                            <span class="ml-2">With Website</span>
+                        </label>
+                        <label class="inline-flex items-center">
+                            <input type="radio" name="filter-website" value="without" class="form-radio text-blue-600">
+                            <span class="ml-2">Without Website</span>
+                        </label>
+                    </div>
+                </div>
+                <!-- Filter by Rating (converted to radio buttons) -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Minimum Rating</label>
+                    <div class="mt-1 flex flex-col space-y-2">
+                        <label class="inline-flex items-center">
+                            <input type="radio" name="filter-rating" value="0" class="form-radio text-blue-600" checked>
+                            <span class="ml-2">All Ratings</span>
+                        </label>
+                        <label class="inline-flex items-center">
+                            <input type="radio" name="filter-rating" value="1" class="form-radio text-blue-600">
+                            <span class="ml-2">1 ⭐ & above</span>
+                        </label>
+                        <label class="inline-flex items-center">
+                            <input type="radio" name="filter-rating" value="2" class="form-radio text-blue-600">
+                            <span class="ml-2">2 ⭐ & above</span>
+                        </label>
+                        <label class="inline-flex items-center">
+                            <input type="radio" name="filter-rating" value="3" class="form-radio text-blue-600">
+                            <span class="ml-2">3 ⭐ & above</span>
+                        </label>
+                        <label class="inline-flex items-center">
+                            <input type="radio" name="filter-rating" value="4" class="form-radio text-blue-600">
+                            <span class="ml-2">4 ⭐ & above</span>
+                        </label>
+                        <label class="inline-flex items-center">
+                            <input type="radio" name="filter-rating" value="5" class="form-radio text-blue-600">
+                            <span class="ml-2">5 ⭐ only</span>
+                        </label>
+                    </div>
+                </div>
+                <!-- Filter by Verification Status (converted to radio buttons) -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Verification Status</label>
+                    <div class="mt-1 flex items-center space-x-4">
+                        <label class="inline-flex items-center">
+                            <input type="radio" name="filter-verified" value="all" class="form-radio text-blue-600"
+                                checked>
+                            <span class="ml-2">All</span>
+                        </label>
+                        <label class="inline-flex items-center">
+                            <input type="radio" name="filter-verified" value="verified"
+                                class="form-radio text-blue-600">
+                            <span class="ml-2">Verified</span>
+                        </label>
+                        <label class="inline-flex items-center">
+                            <input type="radio" name="filter-verified" value="unverified"
+                                class="form-radio text-blue-600">
+                            <span class="ml-2">Unverified</span>
+                        </label>
+                    </div>
+                </div>
+                <!-- Filter by Phone Number (converted to radio buttons) -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Phone Number Availability</label>
+                    <div class="mt-1 flex flex-col space-y-2">
+                        <label class="inline-flex items-center">
+                            <input type="radio" name="filter-phone" value="all" class="form-radio text-blue-600"
+                                checked>
+                            <span class="ml-2">All</span>
+                        </label>
+                        <label class="inline-flex items-center">
+                            <input type="radio" name="filter-phone" value="with" class="form-radio text-blue-600">
+                            <span class="ml-2">With Phone Number</span>
+                        </label>
+                        <label class="inline-flex items-center">
+                            <input type="radio" name="filter-phone" value="without" class="form-radio text-blue-600">
+                            <span class="ml-2">Without Phone Number</span>
+                        </label>
+                    </div>
+                </div>
+                <!-- Filter by Business Status (converted to radio buttons) -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Business Status</label>
+                    <div class="mt-1 flex items-center space-x-4">
+                        <label class="inline-flex items-center">
+                            <input type="radio" name="filter-status" value="all" class="form-radio text-blue-600"
+                                checked>
+                            <span class="ml-2">All</span>
+                        </label>
+                        <label class="inline-flex items-center">
+                            <input type="radio" name="filter-status" value="open" class="form-radio text-blue-600">
+                            <span class="ml-2">Open</span>
+                        </label>
+                        <label class="inline-flex items-center">
+                            <input type="radio" name="filter-status" value="closed" class="form-radio text-blue-600">
+                            <span class="ml-2">Closed</span>
+                        </label>
+                    </div>
+                </div>
+                <!-- Filter by Result Limit (kept as number input) -->
+                <div>
+                    <label for="result-limit" class="block text-sm font-medium text-gray-700">Number of Results (Max
+                        10)</label>
+                    <input type="number" id="result-limit" min="1" max="10" value="5"
+                        class="mt-1 block w-full p-2 border border-gray-300 rounded-md">
+                </div>
+                <!-- Reset Filters Button -->
+                <div>
+                    <button type="button" id="reset-filters"
+                        class="w-full bg-gray-600 text-white p-2 rounded-md hover:bg-gray-700 transition duration-300">Reset
+                        Filters</button>
+                </div>
+            </form>
+        </div>
+    
+    </div>
+
+    <!-- Main Content -->
+    <div class="ml-80 md:ml-80 p-6">
+        <!-- Sidebar Toggle Button (visible on mobile) -->
+        <button id="sidebar-toggle-btn" class="md:hidden mb-4 focus:outline-none">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-700" fill="none" viewBox="0 0 24 24"
+                stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+        </button>
+        <h1 class="text-3xl font-bold mb-6 text-center">Local Business Search</h1>
+        <!-- Search Form -->
+        <div class="bg-white p-6 rounded-lg shadow-lg relative" data-aos="fade-up">
+            <form id="search-form" class="space-y-4">
+                <!-- Place Selection -->
+                <div class="relative">
+                    <label for="place-input" class="block text-sm font-medium text-gray-700">Select a Place</label>
+                    <input type="text" id="place-input" placeholder="Enter a location"
+                        class="mt-1 block w-full p-2 border border-gray-300 rounded-md" autocomplete="off" required>
+                    <!-- Autocomplete Suggestions -->
+                    <div id="autocomplete-suggestions" class="autocomplete-suggestions hidden"></div>
+                </div>
+                <!-- Business Type -->
+                <div>
+                    <label for="business-type" class="block text-sm font-medium text-gray-700">Business Type</label>
+                    <input type="text" id="business-type" placeholder="e.g., Dentist"
+                        class="mt-1 block w-full p-2 border border-gray-300 rounded-md" required>
+                </div>
+                <!-- Submit Button -->
+                <div>
+                    <button type="submit"
+                        class="w-full bg-blue-600 text-white p-2 rounded-md hover:bg-blue-700 transition duration-300">Search</button>
+                </div>
+            </form>
+        </div>
+        <!-- View Toggle Buttons -->
+        <div id="view-toggle" class="mt-6 flex justify-center gap-2" data-aos="fade-up">
+            <button id="view-list"
+                class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">List
+                View</button>
+            <button id="view-grid"
+                class="bg-gray-200 text-gray-800 px-4 py-2 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500">Grid
+                View</button>
+            <button id="view-table"
+                class="bg-gray-200 text-gray-800 px-4 py-2 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500">Table
+                View</button>
+            <button id="view-compact"
+                class="bg-gray-200 text-gray-800 px-4 py-2 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500">Compact
+                View</button>
+            <button id="view-detailed"
+                class="bg-gray-200 text-gray-800 px-4 py-2 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500">Detailed
+                View</button>
+        </div>
+        <!-- Loading Indicator -->
+        <div id="loading" class="hidden mt-6 flex justify-center" data-aos="fade-in">
+            <div class="loader ease-linear rounded-full border-4 border-t-4 border-gray-200 h-12 w-12"></div>
+        </div>
+        <!-- Results Section -->
+        <div id="results" class="mt-6 space-y-4">
+            <!-- Results will be appended here -->
+        </div>
+    </div>
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <!-- Flowbite JS -->
+    <script src="https://unpkg.com/flowbite@1.5.4/dist/flowbite.js"></script>
+    <!-- AOS JS -->
+    <script src="https://unpkg.com/aos@2.3.4/dist/aos.js"></script>
+    <!-- Toastr JS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+    <!-- Custom Scripts -->
+    <script>
+        $(document).ready(function () {
+            // Initialize AOS
+            AOS.init({
+                duration: 800,
+                easing: 'slide',
+                once: true
+            });
+            // Toastr Options
+            toastr.options = {
+                "closeButton": true,
+                "progressBar": true,
+                "positionClass": "toast-top-right",
+                "timeOut": "3000"
+            };
+            const rapidApiKey = '33f656218fmshd937dedf10c6d28p12bdbbjsnecb52a398f27'; // Replace with your RapidAPI Key
+            let selectedPlace = null;
+            let allBusinesses = []; // To store all fetched businesses
+            let filteredBusinesses = []; // To store filtered businesses
+            let currentView = 'list'; // Default view
+            // Debounce function to limit API calls
+            function debounce(func, delay) {
+                let debounceTimer;
+                return function () {
+                    const context = this;
+                    const args = arguments;
+                    clearTimeout(debounceTimer);
+                    debounceTimer = setTimeout(() => func.apply(context, args), delay);
+                };
+            }
+            // Sidebar Toggle (for mobile)
+            $('#sidebar-toggle-btn').on('click', function () {
+                $('#sidebar').toggleClass('mobile-hidden');
+            });
+            // Handle Place Input for Autocomplete
+            $('#place-input').on('input', debounce(function () {
+                const query = $(this).val().trim();
+                if (query.length < 3) {
+                    $('#autocomplete-suggestions').empty().addClass('hidden');
+                    return;
+                }
+                // Construct Geocoding API URL
+                const geocodeUrl = `https://google-map-places.p.rapidapi.com/maps/api/geocode/json?address=${encodeURIComponent(query)}&language=en&region=en&result_type=administrative_area_level_1,locality,postal_code,street_address`;
+                // Make API Call to Geocoding Service
+                $.ajax({
+                    url: geocodeUrl,
+                    method: 'GET',
+                    headers: {
+                        'x-rapidapi-key': rapidApiKey,
+                        'x-rapidapi-host': 'google-map-places.p.rapidapi.com'
+                    },
+                    success: function (data) {
+                        if (data.results && data.results.length > 0) {
+                            const suggestions = data.results.map(place => ({
+                                description: place.formatted_address,
+                                lat: place.geometry.location.lat,
+                                lng: place.geometry.location.lng
+                            }));
+                            displaySuggestions(suggestions);
+                        } else {
+                            $('#autocomplete-suggestions').empty().addClass('hidden');
+                            toastr.warning('No suggestions found.');
+                        }
+                    },
+                    error: function (error) {
+                        console.error('Geocoding API Error:', error);
+                        $('#autocomplete-suggestions').empty().addClass('hidden');
+                        toastr.error('Failed to fetch location suggestions.');
+                    }
+                });
+            }, 500)); // 500ms debounce
+            // Display Autocomplete Suggestions
+            function displaySuggestions(suggestions) {
+                const suggestionsContainer = $('#autocomplete-suggestions');
+                suggestionsContainer.empty();
+                suggestions.forEach(suggestion => {
+                    const suggestionDiv = $(`
+            <div class="autocomplete-suggestion">
+              ${suggestion.description}
+            </div>
+          `);
+                    suggestionDiv.on('click', function () {
+                        $('#place-input').val(suggestion.description);
+                        selectedPlace = {
+                            name: suggestion.description,
+                            geometry: {
+                                location: {
+                                    lat: suggestion.lat,
+                                    lng: suggestion.lng
+                                }
+                            }
+                        };
+                        suggestionsContainer.empty().addClass('hidden');
+                        toastr.success('Location selected.');
+                        $('#filters').slideDown(); // Show filters section
+                        applyFilters(); // Apply any existing filters to the new data
+                    });
+                    suggestionsContainer.append(suggestionDiv);
+                });
+                suggestionsContainer.removeClass('hidden');
+            }
+            // Hide suggestions when clicking outside
+            $(document).on('click', function (event) {
+                if (!$(event.target).closest('#place-input, #autocomplete-suggestions').length) {
+                    $('#autocomplete-suggestions').empty().addClass('hidden');
+                }
+            });
+            // Handle Form Submission
+            $('#search-form').on('submit', function (e) {
+                e.preventDefault();
+                if (!selectedPlace || !selectedPlace.geometry) {
+                    toastr.warning('Please select a valid place from the suggestions.');
+                    return;
+                }
+                const businessType = $('#business-type').val().trim();
+                const lat = selectedPlace.geometry.location.lat;
+                const lng = selectedPlace.geometry.location.lng;
+                const resultLimit = parseInt($('#result-limit').val());
+                // Validate business type
+                if (businessType === '') {
+                    toastr.warning('Please enter a business type.');
+                    return;
+                }
+                // Validate result limit
+                if (isNaN(resultLimit) || resultLimit < 1 || resultLimit > 10) {
+                    toastr.warning('Please enter a valid number of results (1-10).');
+                    return;
+                }
+                // Clear previous results and filters
+                $('#results').empty();
+                allBusinesses = [];
+                filteredBusinesses = [];
+                // Show loading indicator
+                $('#loading').removeClass('hidden');
+                // Construct Business Search API URL
+                const businessSearchUrl = `https://local-business-data.p.rapidapi.com/search-nearby?query=${encodeURIComponent(businessType)}&lat=${lat}&lng=${lng}&limit=${resultLimit}&language=en&region=us&extract_emails_and_contacts=false`;
+                // Make API Call to Business Search Service
+                $.ajax({
+                    url: businessSearchUrl,
+                    method: 'GET',
+                    headers: {
+                        'x-rapidapi-key': rapidApiKey,
+                        'x-rapidapi-host': 'local-business-data.p.rapidapi.com'
+                    },
+                    success: function (data) {
+                        console.log('Business Search API Response:', data); // Debugging line
+                        $('#loading').addClass('hidden');
+                        // Ensure 'data' is an array
+                        const businesses = Array.isArray(data.data) ? data.data : [];
+                        if (businesses.length === 0) {
+                            $('#results').append('<p class="text-center text-gray-500" data-aos="fade-up">No businesses found.</p>');
+                            toastr.info('No businesses found for the specified type and location.');
+                            AOS.refresh(); // Refresh AOS to recognize new elements
+                            return;
+                        }
+                        // Store all businesses
+                        allBusinesses = businesses;
+                        // Display businesses
+                        displayBusinesses(allBusinesses);
+                        toastr.success('Businesses fetched successfully.');
+                        AOS.refresh(); // Refresh AOS to recognize new elements
+                    },
+                    error: function (error) {
+                        $('#loading').addClass('hidden');
+                        console.error('Business Search API Error:', error);
+                        toastr.error('An error occurred while fetching businesses.');
+                    }
+                });
+            });
+            // Function to display businesses based on current view
+            function displayBusinesses(businesses) {
+                $('#results').empty();
+                if (businesses.length === 0) {
+                    $('#results').append('<p class="text-center text-gray-500" data-aos="fade-up">No businesses match the applied filters.</p>');
+                    toastr.info('No businesses match the applied filters.');
+                    AOS.refresh();
+                    return;
+                }
+                // Determine layout based on currentView
+                if (currentView === 'list') {
+                    businesses.forEach(business => {
+                        createListView(business);
+                    });
+                } else if (currentView === 'grid') {
+                    const gridContainer = $('<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"></div>');
+                    businesses.forEach(business => {
+                        gridContainer.append(createGridView(business));
+                    });
+                    $('#results').append(gridContainer);
+                } else if (currentView === 'table') {
+                    const table = $(`
+            <table class="min-w-full bg-white rounded-lg shadow-md">
+              <thead>
+                <tr>
+                  <th class="py-2 px-4 border-b">Name</th>
+                  <th class="py-2 px-4 border-b">Address</th>
+                  <th class="py-2 px-4 border-b">Phone</th>
+                  <th class="py-2 px-4 border-b">Website</th>
+                  <th class="py-2 px-4 border-b">Rating</th>
+                  <th class="py-2 px-4 border-b">Verified</th>
+                  <th class="py-2 px-4 border-b">Status</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          `);
+                    businesses.forEach(business => {
+                        table.find('tbody').append(createTableView(business));
+                    });
+                    $('#results').append(table);
+                } else if (currentView === 'compact') {
+                    businesses.forEach(business => {
+                        createCompactView(business);
+                    });
+                } else if (currentView === 'detailed') {
+                    businesses.forEach(business => {
+                        createDetailedView(business);
+                    });
+                }
+                AOS.refresh(); // Refresh AOS to recognize new elements
+            }
+            // Functions to create different views
+            function createListView(business) {
+                const listItem = $(`
+          <div class="bg-white p-4 rounded-lg shadow-md mb-4" data-aos="fade-up">
+            <h2 class="text-xl font-semibold mb-2">${business.name || 'N/A'}</h2>
+            <p class="text-gray-600 mb-1"><strong>Address:</strong> ${business.full_address || business.address || 'Address not available'}</p>
+            <p class="text-gray-600 mb-1"><strong>Phone:</strong> ${business.phone_number || 'N/A'}</p>
+            <p class="text-gray-600 mb-1"><strong>Website:</strong> <a href="${business.website || '#'}" target="_blank" class="text-blue-500 hover:underline">${business.website ? 'Visit Website' : 'N/A'}</a></p>
+            <p class="text-gray-600 mb-1"><strong>Rating:</strong> ${business.rating ? business.rating + ' ⭐' : 'No rating'} (${business.review_count || 0} reviews)</p>
+            <p class="text-gray-600 mb-1"><strong>Verified:</strong> ${business.verified ? 'Yes' : 'No'}</p>
+            <p class="text-gray-600"><strong>Status:</strong> ${business.business_status || 'N/A'}</p>
+          </div>
+        `);
+                $('#results').append(listItem);
+            }
+            function createGridView(business) {
+                const gridCard = $(`
+          <div class="bg-white p-4 rounded-lg shadow-md" data-aos="fade-up">
+            <h2 class="text-lg font-semibold mb-2">${business.name || 'N/A'}</h2>
+            <p class="text-gray-600 mb-1">${business.full_address || business.address || 'Address not available'}</p>
+            <p class="text-gray-600 mb-2"><strong>Rating:</strong> ${business.rating ? business.rating + ' ⭐' : 'No rating'}</p>
+            <a href="${business.website || '#'}" target="_blank" class="text-blue-500 hover:underline">Visit Website</a>
+          </div>
+        `);
+                return gridCard;
+            }
+            function createTableView(business) {
+                const tableRow = $(`
+          <tr>
+            <td class="py-2 px-4 border-b">${business.name || 'N/A'}</td>
+            <td class="py-2 px-4 border-b">${business.full_address || business.address || 'Address not available'}</td>
+            <td class="py-2 px-4 border-b">${business.phone_number || 'N/A'}</td>
+            <td class="py-2 px-4 border-b"><a href="${business.website || '#'}" target="_blank" class="text-blue-500 hover:underline">${business.website ? 'Visit Website' : 'N/A'}</a></td>
+            <td class="py-2 px-4 border-b">${business.rating ? business.rating + ' ⭐' : 'No rating'} (${business.review_count || 0})</td>
+            <td class="py-2 px-4 border-b">${business.verified ? 'Yes' : 'No'}</td>
+            <td class="py-2 px-4 border-b">${business.business_status || 'N/A'}</td>
+          </tr>
+        `);
+                return tableRow;
+            }
+            function createCompactView(business) {
+                const compactItem = $(`
+          <div class="bg-white p-3 rounded-lg shadow-md mb-3 flex justify-between items-center" data-aos="fade-up">
+            <div>
+              <h2 class="text-lg font-semibold">${business.name || 'N/A'}</h2>
+              <p class="text-gray-600">${business.rating ? business.rating + ' ⭐' : 'No rating'}</p>
+            </div>
+            <div>
+              <a href="${business.website || '#'}" target="_blank" class="text-blue-500 hover:underline">Website</a>
+            </div>
+          </div>
+        `);
+                $('#results').append(compactItem);
+            }
+            function createDetailedView(business) {
+                const detailedItem = $(`
+          <div class="bg-white p-6 rounded-lg shadow-md mb-6" data-aos="fade-up">
+            <h2 class="text-2xl font-bold mb-4">${business.name || 'N/A'}</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <p class="text-gray-600 mb-2"><strong>Address:</strong> ${business.full_address || business.address || 'Address not available'}</p>
+                <p class="text-gray-600 mb-2"><strong>Phone:</strong> ${business.phone_number || 'N/A'}</p>
+                <p class="text-gray-600 mb-2"><strong>Website:</strong> <a href="${business.website || '#'}" target="_blank" class="text-blue-500 hover:underline">${business.website ? 'Visit Website' : 'N/A'}</a></p>
+                <p class="text-gray-600 mb-2"><strong>Rating:</strong> ${business.rating ? business.rating + ' ⭐' : 'No rating'} (${business.review_count || 0} reviews)</p>
+              </div>
+              <div>
+                <p class="text-gray-600 mb-2"><strong>Verified:</strong> ${business.verified ? 'Yes' : 'No'}</p>
+                <p class="text-gray-600 mb-2"><strong>Status:</strong> ${business.business_status || 'N/A'}</p>
+                <!-- Add more detailed information if available -->
+                ${business.working_hours ? `<div class="mt-2">
+                  <strong>Working Hours:</strong>
+                  <ul class="list-disc list-inside">
+                    ${Object.entries(business.working_hours).map(([day, hours]) => `<li>${day}: ${hours.join(', ')}</li>`).join('')}
+                  </ul>
+                </div>` : ''}
+              </div>
+            </div>
+          </div>
+        `);
+                $('#results').append(detailedItem);
+            }
+            // Handle Filters
+            $('#filter-form input, #filter-form select').on('change', function () {
+                applyFilters();
+            });
+            // Function to apply filters
+            function applyFilters() {
+                if (allBusinesses.length === 0) return;
+                // Get filter values
+                const websiteFilter = $('input[name="filter-website"]:checked').val();
+                const minRating = parseFloat($('#filter-rating').val());
+                const verifiedFilters = [];
+                $('input[name="filter-verified"]:checked').each(function () {
+                    verifiedFilters.push($(this).val());
+                });
+                const phoneFilters = [];
+                $('input[name="filter-phone"]:checked').each(function () {
+                    phoneFilters.push($(this).val());
+                });
+                const statusFilters = [];
+                $('input[name="filter-status"]:checked').each(function () {
+                    statusFilters.push($(this).val());
+                });
+                // Filter businesses
+                filteredBusinesses = allBusinesses.filter(business => {
+                    // Filter by website
+                    if (websiteFilter === 'with' && !business.website) return false;
+                    if (websiteFilter === 'without' && business.website) return false;
+                    // Filter by rating
+                    if (minRating > 0) {
+                        if (!business.rating || business.rating < minRating) return false;
+                    }
+                    // Filter by verification status
+                    if (verifiedFilters.length > 0) {
+                        if (verifiedFilters.includes('verified') && !business.verified) return false;
+                        if (verifiedFilters.includes('unverified') && business.verified) return false;
+                    }
+                    // Filter by phone number
+                    if (phoneFilters.length > 0) {
+                        if (phoneFilters.includes('with') && !business.phone_number) return false;
+                        if (phoneFilters.includes('without') && business.phone_number) return false;
+                    }
+                    // Filter by business status
+                    if (statusFilters.length > 0) {
+                        if (statusFilters.includes('open') && business.business_status !== 'OPEN') return false;
+                        if (statusFilters.includes('closed') && business.business_status === 'OPEN') return false;
+                    }
+                    return true;
+                });
+                // Display filtered businesses
+                displayBusinesses(filteredBusinesses);
+            }
+            // Reset Filters
+            $('#reset-filters').on('click', function () {
+                $('#filter-form')[0].reset();
+                filteredBusinesses = allBusinesses;
+                displayBusinesses(allBusinesses);
+                toastr.success('Filters have been reset.');
+            });
+            // Handle View Toggle
+            $('#view-toggle button').on('click', function () {
+                const selectedView = $(this).attr('id').split('-')[1]; // e.g., 'list' from 'view-list'
+                if (selectedView === currentView) return; // No change
+                currentView = selectedView;
+                // Update button styles
+                $('#view-toggle button').removeClass('bg-blue-600 text-white').addClass('bg-gray-200 text-gray-800');
+                $(this).removeClass('bg-gray-200 text-gray-800').addClass('bg-blue-600 text-white');
+                // Display businesses in the selected view
+                displayBusinesses(filteredBusinesses.length > 0 ? filteredBusinesses : allBusinesses);
+            });
+            // Initialize with List View active
+            $('#view-list').addClass('bg-blue-600 text-white');
+        });
+    </script>
+</body>
+
+</html>
