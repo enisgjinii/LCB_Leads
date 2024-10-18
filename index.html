@@ -207,7 +207,7 @@
                 </div>
             </form>
         </div>
-    
+
     </div>
 
     <!-- Main Content -->
@@ -280,7 +280,9 @@
     <!-- Toastr JS -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
     <!-- Custom Scripts -->
+    <script src="config.js"></script>
     <script>
+        const rapidApiKey = config.RAPID_API_KEY;
         $(document).ready(function () {
             // Initialize AOS
             AOS.init({
@@ -295,7 +297,7 @@
                 "positionClass": "toast-top-right",
                 "timeOut": "3000"
             };
-            const rapidApiKey = '33f656218fmshd937dedf10c6d28p12bdbbjsnecb52a398f27'; // Replace with your RapidAPI Key
+            const rapidApiKey = config.RAPID_API_KEY;
             let selectedPlace = null;
             let allBusinesses = []; // To store all fetched businesses
             let filteredBusinesses = []; // To store filtered businesses
